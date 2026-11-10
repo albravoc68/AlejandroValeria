@@ -377,6 +377,13 @@
     <footer class="py-12 bg-white text-center border-t border-gray-100 space-y-4">
         <h3 class="font-cursive text-4xl text-romanticRed">Valeria & Alejandro</h3>
         <p class="text-xs text-gray-400 tracking-widest uppercase">06 . 03 . 2027 — Lampa, Chile</p>
+        
+        <!-- Botón de Acceso al Panel de Control (Novios) -->
+        <div class="pt-2">
+            <button onclick="window.toggleAdminMode()" class="text-[11px] text-gray-400 hover:text-accentGold transition flex items-center justify-center gap-1 mx-auto px-3 py-1 rounded-full border border-gray-200">
+                <i class="fas fa-lock text-[10px]"></i> Modo Novios (Panel)
+            </button>
+        </div>
     </footer>
 
     <!-- NOTIFICACIÓN TIPO TOAST -->
@@ -386,211 +393,309 @@
 
     <!-- FIREBASE SDK & APP LOGIC -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
-        // Firebase Setup Engine
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'wedding-invitation-app';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "demo-api-key",
-            authDomain: "demo-app.firebaseapp.com",
-            projectId: "demo-app",
-            storageBucket: "demo-app.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:demo"
+        // Configuración de tu proyecto Firebase "boda-alejandro-valeria"
+        const firebaseConfig = {
+            apiKey: "AIzaSyBtNG3EJWTr41ig3oPSdK58WROaSeKEe1k",
+            authDomain: "boda-alejandro-valeria.firebaseapp.com",
+            projectId: "boda-alejandro-valeria",
+            storageBucket: "boda-alejandro-valeria.firebasestorage.app",
+            messagingSenderId: "713224544096",
+            appId: "1:713224544096:web:53702dfbc823c1fc3c8805"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        // Initialize Firebase & Services
+        let db = null;
+        let isFirebaseActive = false;
 
-        let currentUser = null;
-        let isAdmin = false;
-        const ADMIN_PIN = "1234"; // Puedes cambiar este PIN para moderar los mensajes
+        try {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            db = getFirestore(app);
 
-        // Authenticate anonymously or with provided token
-        async function initAuth() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    const credentials = await signInWithCustomToken(auth, __initial_auth_token);
-                    currentUser = credentials.user;
-                } else {
-                    const credentials = await signInAnonymously(auth);
-                    currentUser = credentials.user;
-                }
-                listenToMemories();
-            } catch (err) {
-                console.error("Auth Error:", err);
-            }
+            signInAnonymously(auth).then(() => {
+                isFirebaseActive = true;
+                subscribeToMemories();
+            }).catch(err => {
+                console.warn("Firebase Auth fallback to local storage:", err);
+                loadLocalMemories();
+            });
+        } catch (error) {
+            console.warn("Firebase Config fallback to local storage:", error);
+            loadLocalMemories();
         }
 
-        // Firestore Public Collection path strictly following rule 1
-        const memoriesCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'wedding_memories');
+        // State & Settings
+        const ADMIN_PIN = "1234"; // PIN para borrar mensajes
+        let isAdmin = false;
 
-        // Escuchar mensajes en tiempo real desde Firebase
-        function listenToMemories() {
-            if (!currentUser) return;
+        // Default memories if empty
+        const defaultMemories = [
+            { id: "def1", author: "Familia Bravo", text: "¡Estamos inmensamente felices de compartir este gran día con ustedes!", decoration: "❤️ Amor & Alegría", date: "6 de Marzo, 2027" },
+            { id: "def2", author: "Valeria y Alejandro", text: "¡Bienvenidos a nuestro libro de visitas! Déjanos tu lindo mensaje.", decoration: "✨ Felicitaciones Infinitas", date: "6 de Marzo, 2027" }
+        ];
 
-            onSnapshot(memoriesCollectionRef, (snapshot) => {
-                const wall = document.getElementById('memoryWall');
-                wall.innerHTML = '';
-
-                if (snapshot.empty) {
-                    wall.innerHTML = `
-                        <div class="sm:col-span-2 text-center py-8 text-gray-400 font-serif italic text-sm">
-                            Aún no hay mensajes. ¡Sé el primero en dejar un recuerdo para Alejandro y Valeria!
-                        </div>
-                    `;
-                    return;
-                }
-
+        // Realtime Firebase Listener
+        function subscribeToMemories() {
+            if (!db) return;
+            const q = query(collection(db, "memories"), orderBy("createdAt", "desc"));
+            onSnapshot(q, (snapshot) => {
                 const memories = [];
-                snapshot.forEach(docSnap => {
-                    memories.push({ id: docSnap.id, ...docSnap.data() });
+                snapshot.forEach((doc) => {
+                    memories.push({ id: doc.id, ...doc.data() });
                 });
-
-                // Ordenar por fecha en memoria JS (siguiendo Regla 2: sin compound orderBy)
-                memories.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-                memories.forEach(m => {
-                    const card = document.createElement('div');
-                    card.className = "postcard p-6 rounded-xl border border-accentGold/20 relative flex flex-col justify-between";
-                    
-                    const deleteBtnHtml = isAdmin ? `
-                        <button onclick="window.deleteMemoryMessage('${m.id}')" title="Eliminar mensaje" class="text-xs text-red-400 hover:text-red-600 p-1">
-                            <i class="fas fa-trash-alt"></i> Borrar
-                        </button>
-                    ` : '';
-
-                    card.innerHTML = `
-                        <div class="space-y-3">
-                            <div class="flex justify-between items-start">
-                                <span class="text-[11px] px-2.5 py-1 bg-blush text-accentGold font-semibold rounded-full">${escapeHTML(m.tag || '❤️ Amor')}</span>
-                                <span class="text-[10px] text-gray-400">${escapeHTML(m.date || 'Reciente')}</span>
-                            </div>
-                            <p class="font-serif text-gray-700 italic leading-relaxed text-sm">"${escapeHTML(m.text || '')}"</p>
-                        </div>
-                        <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-                            <span class="text-xs font-semibold text-gray-800">— ${escapeHTML(m.author || 'Anónimo')}</span>
-                            <div class="flex items-center gap-2">
-                                ${deleteBtnHtml}
-                                <i class="fas fa-heart text-romanticRed/40 text-xs"></i>
-                            </div>
-                        </div>
-                    `;
-                    wall.appendChild(card);
-                });
+                renderMemories(memories);
             }, (error) => {
-                console.error("Error cargando recuerdos:", error);
+                console.warn("Error loading Firestore realtime collection, fallback to local:", error);
+                loadLocalMemories();
             });
         }
 
-        // Publicar nuevo mensaje en Firebase
-        window.addMemoryMessage = async function(e) {
-            e.preventDefault();
-            if (!currentUser) {
-                showToast("Conectando con el servidor... intenta de nuevo");
+        // Local Storage Fallback
+        function loadLocalMemories() {
+            const localData = localStorage.getItem("wedding_memories");
+            if (localData) {
+                renderMemories(JSON.parse(localData));
+            } else {
+                renderMemories(defaultMemories);
+            }
+        }
+
+        function saveLocalMemories(memories) {
+            localStorage.setItem("wedding_memories", JSON.stringify(memories));
+            renderMemories(memories);
+        }
+
+        // Render Memory Postcards
+        function renderMemories(memories) {
+            const memoryWall = document.getElementById("memoryWall");
+            if (!memoryWall) return;
+            memoryWall.innerHTML = "";
+
+            if (memories.length === 0) {
+                memoryWall.innerHTML = `<div class="col-span-2 text-center py-8 text-gray-400 italic">Sé el primero en dejar un hermoso deseo para los novios.</div>`;
                 return;
             }
 
-            const authorInput = document.getElementById('memoryAuthor');
-            const textInput = document.getElementById('memoryText');
-            const tagInput = document.getElementById('memoryDecoration');
+            memories.forEach(mem => {
+                const card = document.createElement("div");
+                card.className = "postcard p-6 rounded-2xl border border-accentGold/20 relative flex flex-col justify-between space-y-3";
+                
+                const deleteButtonHtml = isAdmin ? `
+                    <button onclick="window.deleteMemory('${mem.id}')" class="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xs px-2 py-1 bg-red-50 rounded border border-red-200 shadow-sm transition">
+                        <i class="fas fa-trash-alt mr-1"></i> Borrar
+                    </button>
+                ` : '';
+
+                card.innerHTML = `
+                    ${deleteButtonHtml}
+                    <div class="space-y-2">
+                        <span class="inline-block px-3 py-1 bg-blush text-accentGold text-[11px] font-semibold rounded-full uppercase tracking-wider">
+                            ${escapeHtml(mem.decoration || '✨ Felicitaciones')}
+                        </span>
+                        <p class="font-serif italic text-gray-700 text-base leading-relaxed">"${escapeHtml(mem.text)}"</p>
+                    </div>
+                    <div class="border-t border-gray-100 pt-3 flex justify-between items-center text-xs text-gray-500">
+                        <span class="font-semibold text-romanticRed">${escapeHtml(mem.author)}</span>
+                        <span class="text-[10px] text-gray-400">${mem.date || '06.03.2027'}</span>
+                    </div>
+                `;
+                memoryWall.appendChild(card);
+            });
+        }
+
+        // Utility to escape HTML and prevent injection
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>"']/g, function(m) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+            });
+        }
+
+        // Add New Memory Message
+        window.addMemoryMessage = async function(event) {
+            event.preventDefault();
+            const authorInput = document.getElementById("memoryAuthor");
+            const textInput = document.getElementById("memoryText");
+            const decorInput = document.getElementById("memoryDecoration");
 
             const author = authorInput.value.trim();
             const text = textInput.value.trim();
-            const tag = tagInput.value;
+            const decoration = decorInput.value;
+            const dateStr = new Date().toLocaleDateString('es-CL', { day: 'numeric', month: 'short' });
 
-            if(!author || !text) return;
+            if (!author || !text) return;
 
-            try {
-                await addDoc(memoriesCollectionRef, {
-                    author: author,
-                    text: text,
-                    tag: tag,
-                    date: new Date().toLocaleDateString('es-CL', { month: 'short', day: 'numeric' }),
-                    timestamp: Date.now(),
-                    userId: currentUser.uid
-                });
-
-                authorInput.value = '';
-                textInput.value = '';
-                showToast("¡Tu mensaje se guardó en tiempo real!");
-
-                if (typeof confetti === 'function') {
-                    confetti({
-                        particleCount: 50,
-                        spread: 50,
-                        origin: { y: 0.8 }
+            if (isFirebaseActive && db) {
+                try {
+                    await addDoc(collection(db, "memories"), {
+                        author,
+                        text,
+                        decoration,
+                        date: dateStr,
+                        createdAt: serverTimestamp()
                     });
+                } catch (e) {
+                    console.error("Firestore Add Doc Error:", e);
+                    addLocalMemory({ author, text, decoration, date: dateStr });
                 }
-            } catch (err) {
-                console.error("Error al guardar mensaje:", err);
-                showToast("Hubo un problema al guardar el mensaje.");
+            } else {
+                addLocalMemory({ author, text, decoration, date: dateStr });
             }
+
+            // Reset form & Trigger Confetti
+            authorInput.value = "";
+            textInput.value = "";
+            confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
+            window.showToast("¡Muchas gracias por tu hermoso mensaje!");
         };
 
-        // Eliminar mensaje (Modo Novios/Admin)
-        window.deleteMemoryMessage = async function(messageId) {
-            if (!isAdmin) return;
-            try {
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'wedding_memories', messageId);
-                await deleteDoc(docRef);
-                showToast("Mensaje eliminado con éxito");
-            } catch (err) {
-                console.error("Error al borrar mensaje:", err);
-                showToast("No se pudo eliminar el mensaje.");
+        function addLocalMemory(newMem) {
+            const current = JSON.parse(localStorage.getItem("wedding_memories") || JSON.stringify(defaultMemories));
+            newMem.id = "loc_" + Date.now();
+            current.unshift(newMem);
+            saveLocalMemories(current);
+        }
+
+        // Delete Memory (Admin Mode)
+        window.deleteMemory = async function(id) {
+            if (!confirm("¿Estás seguro de eliminar este mensaje?")) return;
+
+            if (isFirebaseActive && db && !id.startsWith("loc_") && !id.startsWith("def")) {
+                try {
+                    await deleteDoc(doc(db, "memories", id));
+                } catch (e) {
+                    console.error("Firestore Delete Error:", e);
+                }
+            } else {
+                let current = JSON.parse(localStorage.getItem("wedding_memories") || JSON.stringify(defaultMemories));
+                current = current.filter(m => m.id !== id);
+                saveLocalMemories(current);
             }
+            window.showToast("Mensaje eliminado");
         };
 
-        // Activar modo administración (Novios)
+        // Admin Toggle
         window.toggleAdminMode = function() {
             if (isAdmin) {
                 isAdmin = false;
-                showToast("Modo administración desactivado");
-                listenToMemories();
+                window.showToast("Modo Novios desactivado");
             } else {
-                const pass = prompt("Ingresa el PIN de novios para borrar mensajes:");
-                if (pass === ADMIN_PIN) {
+                const inputPin = prompt("Ingresa el PIN de novios para administrar:");
+                if (inputPin === ADMIN_PIN) {
                     isAdmin = true;
-                    showToast("Modo administración activado (puedes borrar mensajes)");
-                    listenToMemories();
-                } else if (pass !== null) {
-                    showToast("PIN incorrecto");
+                    window.showToast("¡Modo Novios activado!");
+                } else if (inputPin !== null) {
+                    alert("PIN incorrecto");
                 }
+            }
+            if (isFirebaseActive && db) {
+                subscribeToMemories();
+            } else {
+                loadLocalMemories();
             }
         };
 
-        // Iniciar autenticación al cargar
-        initAuth();
-    </script>
+        // Photo Gallery Data & Rendering
+        const weddingPhotos = [
+            { url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80', caption: 'Nuestro compromiso' },
+            { url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80', caption: 'Momentos inolvidables' },
+            { url: 'https://images.unsplash.com/photo-1529636798458-92182e662485?auto=format&fit=crop&w=800&q=80', caption: 'Juntos en cada aventura' }
+        ];
 
-    <!-- JAVASCRIPT LOGIC GENERAL -->
-    <script>
-        // --- 1. CUENTA REGRESIVA (6 de marzo de 2027 - 11:30 AM) ---
-        const targetDate = new Date("March 6, 2027 11:30:00").getTime();
+        function renderPhotos() {
+            const grid = document.getElementById('photoGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            weddingPhotos.forEach((photo) => {
+                const card = document.createElement('div');
+                card.className = 'glass-card p-4 rounded-2xl space-y-3 cursor-pointer group hover:shadow-xl transition transform hover:-translate-y-1';
+                card.onclick = () => openLightbox(photo.url, photo.caption);
+                card.innerHTML = `
+                    <div class="overflow-hidden rounded-xl aspect-[4/3] bg-gray-100">
+                        <img src="${photo.url}" alt="${escapeHtml(photo.caption)}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    </div>
+                    <p class="font-serif italic text-gray-700 text-center text-sm">${escapeHtml(photo.caption)}</p>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Lightbox Functions
+        window.openLightbox = function(url, caption) {
+            document.getElementById('lightboxImg').src = url;
+            document.getElementById('lightboxCaption').innerText = caption;
+            document.getElementById('lightboxModal').classList.remove('hidden');
+        };
+
+        window.closeLightbox = function() {
+            document.getElementById('lightboxModal').classList.add('hidden');
+        };
+
+        // Countdown Timer Logic (Target Date: March 6, 2027 11:30 AM)
+        const weddingDate = new Date('March 6, 2027 11:30:00').getTime();
 
         function updateCountdown() {
             const now = new Date().getTime();
-            const difference = targetDate - now;
+            const distance = weddingDate - now;
 
-            if (difference > 0) {
-                const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-
-                document.getElementById("days").innerText = days < 10 ? "0" + days : days;
-                document.getElementById("hours").innerText = hours < 10 ? "0" + hours : hours;
-                document.getElementById("minutes").innerText = minutes < 10 ? "0" + minutes : minutes;
-                document.getElementById("seconds").innerText = seconds < 10 ? "0" + seconds : seconds;
+            if (distance < 0) {
+                document.getElementById('days').innerText = '00';
+                document.getElementById('hours').innerText = '00';
+                document.getElementById('minutes').innerText = '00';
+                document.getElementById('seconds').innerText = '00';
+                return;
             }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            document.getElementById('days').innerText = String(days).padStart(2, '0');
+            document.getElementById('hours').innerText = String(hours).padStart(2, '0');
+            document.getElementById('minutes').innerText = String(minutes).padStart(2, '0');
+            document.getElementById('seconds').innerText = String(seconds).padStart(2, '0');
         }
+
         setInterval(updateCountdown, 1000);
         updateCountdown();
 
-        // --- 2. REPRODUCTOR DE MÚSICA ---
+        // UI Helpers
+        window.openMap = function(query) {
+            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, '_blank');
+        };
+
+        window.toggleGiftModal = function() {
+            const modal = document.getElementById('giftModal');
+            modal.classList.toggle('hidden');
+        };
+
+        window.copyToClipboard = function(elementId) {
+            const text = document.getElementById(elementId).innerText;
+            const tempInput = document.createElement('input');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            window.showToast("Copiado al portapapeles: " + text);
+        };
+
+        window.showToast = function(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        };
+
+        // Background Audio Toggle
         const musicBtn = document.getElementById('musicToggle');
         const bgMusic = document.getElementById('bgMusic');
         const musicIcon = document.getElementById('musicIcon');
@@ -599,129 +704,41 @@
         musicBtn.addEventListener('click', () => {
             if (isPlaying) {
                 bgMusic.pause();
-                musicIcon.classList.remove('fa-pause');
-                musicIcon.classList.add('fa-music');
+                musicIcon.className = 'fas fa-music text-lg';
             } else {
-                bgMusic.play().catch(e => console.log("Audio block:", e));
-                musicIcon.classList.remove('fa-music');
-                musicIcon.classList.add('fa-pause');
+                bgMusic.play();
+                musicIcon.className = 'fas fa-pause text-lg';
             }
             isPlaying = !isPlaying;
         });
 
-        // --- 3. LÓGICA DEL ÁLBUM DE FOTOS ---
-        const weddingPhotos = [
-            {
-                url: "propuesta.jpeg",
-                caption: "Nuestra propuesta 💍"
-            },
-            {
-                url: "mundo.jpeg",
-                caption: "Juntos por el mundo"
-            },
-            {
-                url: "tarde.jpeg",
-                caption: "Un atardecer especial"
-            }
-        ];
-
-        function renderPhotos() {
-            const grid = document.getElementById('photoGrid');
-            grid.innerHTML = '';
-
-            weddingPhotos.forEach((photo) => {
-                const polaroid = document.createElement('div');
-                polaroid.className = "bg-white p-4 rounded-xl shadow-md hover:shadow-xl transition transform hover:-translate-y-1 cursor-pointer border border-gray-100 flex flex-col justify-between";
-                polaroid.onclick = () => openLightbox(photo.url, photo.caption);
-                
-                polaroid.innerHTML = `
-                    <div class="overflow-hidden rounded-lg aspect-square bg-gray-100 mb-3">
-                        <img src="${escapeHTML(photo.url)}" alt="${escapeHTML(photo.caption)}" class="w-full h-full object-cover hover:scale-105 transition duration-500" onerror="this.src='https://placehold.co/600x600/F4EAE6/C5A059?text=Foto'">
-                    </div>
-                    <p class="font-serif italic text-gray-700 text-center text-sm">${escapeHTML(photo.caption)}</p>
-                `;
-                grid.appendChild(polaroid);
-            });
-        }
-
-        function openLightbox(url, caption) {
-            document.getElementById('lightboxImg').src = url;
-            document.getElementById('lightboxCaption').innerText = caption;
-            document.getElementById('lightboxModal').classList.remove('hidden');
-        }
-
-        function closeLightbox() {
-            document.getElementById('lightboxModal').classList.add('hidden');
-        }
-
-        function escapeHTML(str) {
-            if (!str) return '';
-            return String(str).replace(/[&<>'"]/g, 
-                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-            );
-        }
-
-        // --- 4. UTILIDADES ---
-        function openMap(query) {
-            const encoded = encodeURIComponent(query);
-            window.open(`https://www.google.com/maps/search/?api=1&query=${encoded}`, '_blank');
-        }
-
-        function toggleGiftModal() {
-            const modal = document.getElementById('giftModal');
-            modal.classList.toggle('hidden');
-        }
-
-        function copyToClipboard(elementId) {
-            const textToCopy = document.getElementById(elementId).innerText;
-            const textarea = document.createElement('textarea');
-            textarea.value = textToCopy;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            showToast("¡Copiado al portapapeles!");
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.innerText = message;
-            toast.classList.remove('opacity-0');
-            toast.classList.add('opacity-100');
-            setTimeout(() => {
-                toast.classList.remove('opacity-100');
-                toast.classList.add('opacity-0');
-            }, 3000);
-        }
-
-        // --- 5. ANIMACIÓN DE PÉTALOS FLOTANTES ---
+        // Floating Petals Animation Canvas
         const canvas = document.getElementById('petal-canvas');
         const ctx = canvas.getContext('2d');
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
 
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
 
         const petals = Array.from({ length: 25 }, () => ({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
+            x: Math.random() * width,
+            y: Math.random() * height,
             size: Math.random() * 8 + 4,
-            speedY: Math.random() * 1 + 0.5,
+            speedY: Math.random() * 0.8 + 0.3,
             speedX: Math.random() * 0.5 - 0.25,
-            opacity: Math.random() * 0.5 + 0.3,
-            rotation: Math.random() * Math.PI * 2,
-            rotSpeed: (Math.random() - 0.5) * 0.02
+            opacity: Math.random() * 0.5 + 0.2,
+            angle: Math.random() * Math.PI * 2
         }));
 
         function drawPetals() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, width, height);
             petals.forEach(p => {
                 ctx.save();
                 ctx.translate(p.x, p.y);
-                ctx.rotate(p.rotation);
+                ctx.rotate(p.angle);
                 ctx.fillStyle = `rgba(244, 234, 230, ${p.opacity})`;
                 ctx.beginPath();
                 ctx.ellipse(0, 0, p.size, p.size / 2, 0, 0, Math.PI * 2);
@@ -730,20 +747,19 @@
 
                 p.y += p.speedY;
                 p.x += p.speedX;
-                p.rotation += p.rotSpeed;
+                p.angle += 0.01;
 
-                if (p.y > canvas.height) {
+                if (p.y > height) {
                     p.y = -10;
-                    p.x = Math.random() * canvas.width;
+                    p.x = Math.random() * width;
                 }
             });
             requestAnimationFrame(drawPetals);
         }
 
-        window.onload = function() {
-            renderPhotos();
-            drawPetals();
-        };
+        // Initialize Photo Gallery on Load
+        renderPhotos();
+        drawPetals();
     </script>
 </body>
 </html>
