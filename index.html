@@ -421,11 +421,8 @@
             loadLocalMemories();
         }
 
-        // Default memories if empty
-        const defaultMemories = [
-            { id: "def1", author: "Familia Bravo", text: "¡Estamos inmensamente felices de compartir este gran día con ustedes!", decoration: "❤️ Amor & Alegría", date: "6 de Marzo, 2027" },
-            { id: "def2", author: "Valeria y Alejandro", text: "¡Bienvenidos a nuestro libro de visitas! Déjanos tu lindo mensaje.", decoration: "✨ Felicitaciones Infinitas", date: "6 de Marzo, 2027" }
-        ];
+        // Default memories array is now empty
+        const defaultMemories = [];
 
         // Realtime Firebase Listener
         function subscribeToMemories() {
@@ -465,7 +462,11 @@
             memoryWall.innerHTML = "";
 
             if (memories.length === 0) {
-                memoryWall.innerHTML = `<div class="col-span-2 text-center py-8 text-gray-400 italic">Sé el primero en dejar un hermoso deseo para los novios.</div>`;
+                memoryWall.innerHTML = `<div class="col-span-2 text-center py-12 glass-card rounded-2xl border border-accentGold/20 text-gray-500 italic space-y-2 font-serif text-lg">
+                    <i class="fas fa-heart text-romanticRed text-2xl mb-1 block"></i>
+                    <p>Aún no hay mensajes en el libro.</p>
+                    <p class="text-xs font-sans tracking-widest uppercase text-gray-400 font-normal">¡Sé el primero en dejar un hermoso deseo para los novios!</p>
+                </div>`;
                 return;
             }
 
