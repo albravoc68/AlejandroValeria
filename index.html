@@ -98,6 +98,44 @@
             pointer-events: none;
             z-index: 40;
         }
+		
+#confirmacion {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+#confirmacion .rsvp-content {
+    max-width: 600px;
+    margin: 20px auto 0;
+}
+
+#confirmacion p {
+    color: inherit;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.btn-whatsapp {
+    display: inline-block;
+    margin-top: 25px;
+    padding: 12px 30px;
+    background-color: var(--primary-color, #d4af37); /* Utiliza el tono principal/dorado de la plantilla */
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 30px;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.btn-whatsapp:hover {
+    background-color: var(--primary-color-dark, #b5922f);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
     </style>
 </head>
 <body class="antialiased">
@@ -172,6 +210,7 @@
             <a href="#galeria" class="hover:text-accentGold transition">Galería</a>
             <a href="#regalos" class="hover:text-accentGold transition">Mesa de Regalos</a>
             <a href="#guestbook" class="hover:text-accentGold transition">Libro de Recuerdos</a>
+			<a href="#confirmacion" class="hover:text-accentGold transition">Confirmar Asistencia</a>
         </div>
     </nav>
 
@@ -372,6 +411,31 @@
             </div>
         </div>
     </section>
+	
+	<!-- Sección Confirmación de Asistencia -->
+	<section id="confirmacion">
+		<div>
+			<div>
+				<i></i>
+				<h2>Confirmación de Asistencia</h2>
+				<p>Por favor confirma tu presencia antes del 15 de Enero de 2027</p>
+			</div>
+
+			<div class="rsvp-content">
+				<p>
+					Nos encantaría contar con tu presencia en este día tan especial. 
+					Haz clic en el siguiente botón para enviarnos un mensaje con tu confirmación directo a WhatsApp.
+				</p>
+
+				<a href="https://wa.me/56912345678?text=¡Hola!%20Confirmamos%20nuestra%20asistencia%20al%20matrimonio%20de%20Valeria%20y%20Alejandro.%20Nombres:%20" 
+				   target="_blank" 
+				   rel="noopener noreferrer" 
+				   class="btn-whatsapp">
+					Confirmar por WhatsApp
+				</a>
+			</div>
+		</div>
+	</section>
 
     <!-- FOOTER -->
     <footer class="py-12 bg-white text-center border-t border-gray-100 space-y-4">
