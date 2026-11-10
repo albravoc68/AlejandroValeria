@@ -111,7 +111,7 @@
         </button>
         <!-- Audio player (Background Romantic Instrument) -->
         <audio id="bgMusic" loop>
-            <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=romantic-wedding-piano-112188.mp3" type="audio/mpeg">
+            <source src="music.mp3" type="audio/mpeg">
         </audio>
     </div>
 
@@ -196,10 +196,10 @@
                 </div>
                 <p class="text-gray-600 text-base leading-relaxed pt-2">
                     <strong>Lampa, Santiago</strong><br>
-                    <span class="text-gray-400 italic text-sm">(Dirección exacta pendiente de confirmación)</span>
+                    <span class="text-gray-400 text-sm">Chile Nuevo PC 53 lote 7</span>
                 </p>
                 <div class="pt-4 flex justify-center">
-                    <button onclick="openMap('Lampa, Chile')" class="px-6 py-2.5 text-xs uppercase tracking-wider bg-white border border-accentGold text-accentGold rounded-lg hover:bg-accentGold hover:text-white transition shadow-sm font-semibold">
+                    <button onclick="openMap('Chile Nuevo PC 53 lote 7, Lampa, Chile')" class="px-6 py-2.5 text-xs uppercase tracking-wider bg-white border border-accentGold text-accentGold rounded-lg hover:bg-accentGold hover:text-white transition shadow-sm font-semibold">
                         <i class="fas fa-map-marker-alt mr-1"></i> Ver Ubicación Referencial
                     </button>
                 </div>
@@ -211,7 +211,7 @@
             <i class="fas fa-user-tie text-accentGold text-xl mb-2"></i>
             <h4 class="font-serif text-lg font-semibold text-gray-800">Dress Code</h4>
             <p class="text-gray-600 text-sm">Formal / Elegante</p>
-            <p class="text-xs text-gray-400 mt-1">Sugerimos tonos de día. Reservamos el color blanco para la novia.</p>
+            <p class="text-xs text-gray-400 mt-1">Sugerimos tonos de día, considerar que habrá suelo de pasto. Reservamos el color blanco, beige y amarillo para la novia.</p>
         </div>
     </section>
 
@@ -421,8 +421,11 @@
             loadLocalMemories();
         }
 
-        // Default memories array is now empty
-        const defaultMemories = [];
+        // Default memories if empty
+        const defaultMemories = [
+            { id: "def1", author: "Familia Bravo", text: "¡Estamos inmensamente felices de compartir este gran día con ustedes!", decoration: "❤️ Amor & Alegría", date: "6 de Marzo, 2027" },
+            { id: "def2", author: "Valeria y Alejandro", text: "¡Bienvenidos a nuestro libro de visitas! Déjanos tu lindo mensaje.", decoration: "✨ Felicitaciones Infinitas", date: "6 de Marzo, 2027" }
+        ];
 
         // Realtime Firebase Listener
         function subscribeToMemories() {
@@ -462,11 +465,7 @@
             memoryWall.innerHTML = "";
 
             if (memories.length === 0) {
-                memoryWall.innerHTML = `<div class="col-span-2 text-center py-12 glass-card rounded-2xl border border-accentGold/20 text-gray-500 italic space-y-2 font-serif text-lg">
-                    <i class="fas fa-heart text-romanticRed text-2xl mb-1 block"></i>
-                    <p>Aún no hay mensajes en el libro.</p>
-                    <p class="text-xs font-sans tracking-widest uppercase text-gray-400 font-normal">¡Sé el primero en dejar un hermoso deseo para los novios!</p>
-                </div>`;
+                memoryWall.innerHTML = `<div class="col-span-2 text-center py-8 text-gray-400 italic">Sé el primero en dejar un hermoso deseo para los novios.</div>`;
                 return;
             }
 
