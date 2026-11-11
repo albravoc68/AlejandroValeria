@@ -99,43 +99,43 @@
             z-index: 40;
         }
 		
-#confirmacion {
-    text-align: center;
-    padding: 60px 20px;
-}
-
-#confirmacion .rsvp-content {
-    max-width: 600px;
-    margin: 20px auto 0;
-}
-
-#confirmacion p {
-    color: inherit;
-    font-size: 1rem;
-    line-height: 1.6;
-}
-
-.btn-whatsapp {
-    display: inline-block;
-    margin-top: 25px;
-    padding: 12px 30px;
-    background-color: var(--primary-color, #d4af37); /* Utiliza el tono principal/dorado de la plantilla */
-    color: #ffffff;
-    font-family: inherit;
-    font-size: 1rem;
-    font-weight: 600;
-    text-decoration: none;
-    border-radius: 30px;
-    letter-spacing: 1px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-}
-
-.btn-whatsapp:hover {
-    background-color: var(--primary-color-dark, #b5922f);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-}
+		#confirmacion {
+		    text-align: center;
+		    padding: 60px 20px;
+		}
+		
+		#confirmacion .rsvp-content {
+		    max-width: 600px;
+		    margin: 20px auto 0;
+		}
+		
+		#confirmacion p {
+		    color: inherit;
+		    font-size: 1rem;
+		    line-height: 1.6;
+		}
+		
+		.btn-whatsapp {
+		    display: inline-block;
+		    margin-top: 25px;
+		    padding: 12px 30px;
+		    background-color: var(--primary-color, #d4af37); /* Utiliza el tono principal/dorado de la plantilla */
+		    color: #ffffff;
+		    font-family: inherit;
+		    font-size: 1rem;
+		    font-weight: 600;
+		    text-decoration: none;
+		    border-radius: 30px;
+		    letter-spacing: 1px;
+		    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+		    transition: all 0.3s ease;
+		}
+		
+		.btn-whatsapp:hover {
+		    background-color: var(--primary-color-dark, #b5922f);
+		    transform: translateY(-2px);
+		    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+		}
     </style>
 </head>
 <body class="antialiased">
@@ -204,15 +204,15 @@
     </header>
 
     <!-- NAVBAR NAVEGACIÓN -->
-    <nav class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-accentGold/20 shadow-sm">
-        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-around text-xs sm:text-sm uppercase tracking-wider font-medium text-gray-700">
-            <a href="#detalles" class="hover:text-accentGold transition">Ubicación & Horario</a>
-            <a href="#galeria" class="hover:text-accentGold transition">Galería</a>
-            <a href="#regalos" class="hover:text-accentGold transition">Mesa de Regalos</a>
-            <a href="#guestbook" class="hover:text-accentGold transition">Libro de Recuerdos</a>
-			<a href="#confirmacion" class="hover:text-accentGold transition">Confirmar Asistencia</a>
-        </div>
-    </nav>
+	<nav class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-accentGold/20 shadow-sm">
+		<div class="max-w-4xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-around text-xs sm:text-sm uppercase tracking-wider font-medium text-gray-700 gap-2 sm:gap-0">
+			<a href="#detalles" class="hover:text-accentGold transition py-1 sm:py-0">Ubicación &amp; Horario</a>
+			<a href="#galeria" class="hover:text-accentGold transition py-1 sm:py-0">Galería</a>
+			<a href="#regalos" class="hover:text-accentGold transition py-1 sm:py-0">Mesa de Regalos</a>
+			<a href="#guestbook" class="hover:text-accentGold transition py-1 sm:py-0">Libro de Recuerdos</a>
+			<a href="#confirmacion" class="hover:text-accentGold transition py-1 sm:py-0">Confirmar Asistencia</a>
+		</div>
+	</nav>
 
     <!-- 2. DETALLES DEL EVENTO -->
     <section id="detalles" class="py-20 px-4 max-w-4xl mx-auto">
